@@ -1,45 +1,56 @@
 package com.xusu.flutter_toast
 
-import androidx.annotation.NonNull;
-import io.flutter.embedding.engine.plugins.FlutterPlugin
+import android.content.Context
+import android.widget.TextView
+import android.widget.Toast
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
 
-/** FlutterToastPlugin */
-public class FlutterToastPlugin: FlutterPlugin, MethodCallHandler {
-  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-    val channel = MethodChannel(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "flutter_toast")
-    channel.setMethodCallHandler(FlutterToastPlugin());
-  }
+public class FlutterToastPlugin : MethodCallHandler {
 
-  // This static function is optional and equivalent to onAttachedToEngine. It supports the old
-  // pre-Flutter-1.12 Android projects. You are encouraged to continue supporting
-  // plugin registration via this function while apps migrate to use the new Android APIs
-  // post-flutter-1.12 via https://flutter.dev/go/android-project-migration.
-  //
-  // It is encouraged to share logic between onAttachedToEngine and registerWith to keep
-  // them functionally equivalent. Only one of onAttachedToEngine or registerWith will be called
-  // depending on the user's project. onAttachedToEngine or registerWith must both be defined
-  // in the same class.
-  companion object {
-    @JvmStatic
-    fun registerWith(registrar: Registrar) {
-      val channel = MethodChannel(registrar.messenger(), "flutter_toast")
-      channel.setMethodCallHandler(FlutterToastPlugin())
+    lateinit var mContext: Context
+    lateinit var mToast: Toast
+
+    constructor(context: Context) {
+        mContext = context
     }
-  }
 
-  override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
-    if (call.method == "getPlatformVersion") {
-      result.success("Android ${android.os.Build.VERSION.RELEASE}")
-    } else {
-      result.notImplemented()
+    companion object {
+        fun registerWith(registrar: Registrar) {
+            val channel = MethodChannel(registrar.messenger(), "com.xusu.flutter_toast/flutter_toast")
+            channel.setMethodCallHandler(FlutterToastPlugin(registrar.context()))
+        }
     }
-  }
 
-  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-  }
+    override fun onMethodCall(call: MethodCall, result: Result) {
+        if (call.method == "showToast") {
+            val msg = call.argument<String>("msg")
+            val duration = call.argument<String>("duration")
+            val textColor = call.argument<Number>("textColor")
+            val textSize = call.argument<Number>("textSize")
+            mToast = Toast.makeText(mContext, msg, Toast.LENGTH_SHORT)
+            if (msg != null) {
+                mToast.setText(msg)
+            }
+            if (duration != null) {
+                if (duration.equals("long")) {
+                    mToast.duration = Toast.LENGTH_LONG
+                } else {
+                    mToast.duration = Toast.LENGTH_SHORT
+                }
+            }
+            val textView: TextView = mToast.view.findViewById(android.R.id.message) as TextView
+            if (textView != null) {
+                textView.text = msg
+                textView.setTextColor(textColor as Int)
+                textView.setTextSize(textSize as Float)
+            }
+            mToast.show()
+        } else {
+            result.notImplemented()
+        }
+    }
 }
